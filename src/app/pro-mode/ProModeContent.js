@@ -2,27 +2,35 @@
 
 import { useState, useCallback, memo, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { fetchWithPorts } from '../../utils/fetchWithPorts';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const API_PORTS = [5001];
-const API_BASE_URL = API_PORTS.map(port => `http://0.0.0.0:${port}/api`);
+const API_BASE_URL = API_PORTS.map(port => `http://127.0.0.1:${port}/api`);
 
 async function fetchApi(url) {
+    console.log(`Fetching API at: ${url}`);
     try {
         const response = await fetch(url);
         if (!response.ok) throw new Error('API not found');
+        console.log(`API response status: ${response.status}`);
         return response;
     } catch (error) {
-        console.error(error);
+        console.error(`Error fetching API at ${url}:`, error);
         return null;
     }
 }
 
 async function getApiData() {
+    console.log('Attempting to fetch API data from available ports');
     for (const baseUrl of API_BASE_URL) {
         const response = await fetchApi(baseUrl);
-        if (response) return response;
+        if (response) {
+            console.log(`Successfully fetched data from: ${baseUrl}`);
+            return response;
+        }
     }
+    console.error('All API ports failed');
     throw new Error('All API ports failed');
 }
 
@@ -111,19 +119,25 @@ export default function ProModeContent() {
         setError(null);
 
         try {
-            const data = await fetchWithPorts('/api/analyze-website', {
+            console.log('Sending request to analyze website...');
+            const response = await fetch(`${API_BASE_URL[0]}/analyze-website`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
 
+            const data = await response.json();
+            console.log('Received response:', data);
+
             if (data.status === 'success') {
                 setWebsiteAnalysis(data.data);
                 setStep(4);
             } else {
+                console.error('Error in response:', data.message);
                 setError(data.message);
             }
         } catch (err) {
+            console.error('Exception during API call:', err);
             setError('Failed to analyze website. Please try again.');
         } finally {
             setLoading(false);
@@ -266,8 +280,7 @@ export default function ProModeContent() {
                 </div>
 
                 <div className="space-y-2">
-                    <label className="block text-sm font-medium text-purple-400">
-                        Industry *
+                    <label className="block text-sm font-medium text-purple-400">                        Industry *
                     </label>
                     <input
                         type="text"
@@ -481,12 +494,6 @@ export default function ProModeContent() {
 
     // Step 6: Report
     const Report = () => {
-        const downloadPDF = () => {
-            console.log('Downloading PDF:', report.report_file);
-            window.open(report.report_file, '_blank');
-        };
-
-        // Function to convert markdown to styled HTML
         const formatMarkdown = (content) => {
             if (!content) return '';
 
@@ -526,6 +533,132 @@ export default function ProModeContent() {
                 .replace(/^(?!<[hl]|<li|<block|<pre|<hr)(.*$)/gm, '<p class="text-gray-300 mb-4 leading-relaxed">$1</p>');
         };
 
+        const exportToPDF = async () => {
+            if (!report) return;
+
+            try {
+                const pdf = new jsPDF('p', 'pt', 'a4');
+                
+                // Set better font and initial settings
+                pdf.setFont("helvetica");
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const margin = 40;
+                const maxWidth = pageWidth - (2 * margin);
+                
+                // Add Header with styling
+                pdf.setFontSize(24);
+                pdf.setTextColor(88, 28, 135); // Purple color
+                pdf.text('Professional Analysis Report', margin, margin);
+
+                // Add company info section
+                const addCompanyInfo = (startY) => {
+                    pdf.setFontSize(12);
+                    pdf.setTextColor(60, 60, 60);
+                    
+                    const metadata = [
+                        `Company: ${formData.company_name}`,
+                        `Industry: ${formData.industry}`,
+                        `Report Type: ${reportType}`,
+                        `Generated: ${new Date().toLocaleString()}`
+                    ];
+
+                    let y = startY;
+                    metadata.forEach(text => {
+                        pdf.text(text, margin, y);
+                        y += 20;
+                    });
+
+                    return y + 10;
+                };
+
+                // Process markdown content
+                const processMarkdownContent = (content, startY) => {
+                    let y = startY;
+                    const lines = content.split('\n');
+                    
+                    for (const line of lines) {
+                        // Check for page break
+                        if (y > pdf.internal.pageSize.getHeight() - margin) {
+                            pdf.addPage();
+                            y = margin;
+                        }
+
+                        // Headers
+                        if (line.startsWith('# ')) {
+                            pdf.setFontSize(20);
+                            pdf.setTextColor(88, 28, 135);
+                            const text = line.replace('# ', '').trim();
+                            pdf.text(text, margin, y);
+                            y += 25;
+                        }
+                        else if (line.startsWith('## ')) {
+                            pdf.setFontSize(16);
+                            pdf.setTextColor(88, 28, 135);
+                            const text = line.replace('## ', '').trim();
+                            pdf.text(text, margin, y);
+                            y += 20;
+                        }
+                        // Lists
+                        else if (line.trim().startsWith('- ')) {
+                            pdf.setFontSize(11);
+                            pdf.setTextColor(60, 60, 60);
+                            const text = line.trim().replace('- ', '').trim();
+                            const wrappedText = pdf.splitTextToSize(text, maxWidth - 20);
+                            wrappedText.forEach((textLine, index) => {
+                                pdf.text('•', margin, y);
+                                pdf.text(textLine, margin + 15, y);
+                                y += 15;
+                            });
+                        }
+                        // Regular paragraphs
+                        else if (line.trim()) {
+                            pdf.setFontSize(11);
+                            pdf.setTextColor(60, 60, 60);
+                            pdf.setFont("helvetica", "normal");
+                            const wrappedText = pdf.splitTextToSize(line.trim(), maxWidth);
+                            wrappedText.forEach(textLine => {
+                                pdf.text(textLine, margin, y);
+                                y += 15;
+                            });
+                        }
+                        // Empty lines for spacing
+                        else {
+                            y += 10;
+                        }
+                    }
+                    return y;
+                };
+
+                // Add content sections
+                let currentY = margin + 20;
+                currentY = addCompanyInfo(currentY);
+                currentY = processMarkdownContent(report.report_content, currentY + 20);
+
+                // Add page numbers
+                const pageCount = pdf.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    pdf.setPage(i);
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(128, 128, 128);
+                    pdf.text(
+                        `Page ${i} of ${pageCount}`,
+                        pageWidth / 2,
+                        pdf.internal.pageSize.getHeight() - 20,
+                        { align: 'center' }
+                    );
+                }
+
+                // Save PDF
+                const filename = `${formData.company_name.toLowerCase().replace(/\s+/g, '_')}_${reportType}_analysis.pdf`;
+                pdf.save(filename);
+                
+                console.log('PDF downloaded successfully');
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                setError('Failed to generate PDF. Please try again.');
+            }
+        };
+
         return (
             <div className="space-y-6">
                 <div className="flex justify-between items-center">
@@ -544,7 +677,7 @@ export default function ProModeContent() {
                             Copy
                         </button>
                         <button
-                            onClick={downloadPDF}
+                            onClick={exportToPDF}
                             className="px-4 py-2 rounded-lg font-medium bg-purple-600 hover:bg-purple-500 text-white flex items-center gap-2"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

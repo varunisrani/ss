@@ -14,21 +14,13 @@
 
 ## Backend Setup
 
-### Common Setup (Both Modes)
-1. **Create Virtual Environment**
-   ```bash
-   python -m venv venv
+### Environment Configuration
+1. **Create .env file**
+   In both `minimode` and `promode` directories, create a `.env` file:
    ```
-
-2. **Activate Virtual Environment**
-   - Windows:
-     ```bash
-     .\venv\Scripts\activate
-     ```
-   - Unix/MacOS:
-     ```bash
-     source venv/bin/activate
-     ```
+   OPENAI_API_KEY=your_api_key_here
+   SEPRER_API_KEY=your_free_seprer_key_here
+   ```
 
 ### Minimode Setup
 1. **Navigate and Setup Environment**
@@ -84,5 +76,9 @@
   - Ensure correct venv activation
   - Verify Python version compatibility
   - Delete venv and recreate if dependencies conflict
+- **API Key Issues**:
+  - Verify .env file exists in correct directory
+  - Check API key format and validity
+  - Ensure no whitespace in API keys
 
 For further assistance, consult project documentation or contact development team.

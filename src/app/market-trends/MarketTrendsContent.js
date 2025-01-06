@@ -154,7 +154,7 @@ export default function MarketTrendsContent() {
         await new Promise(resolve => setTimeout(resolve, AI_GENERATION_STEPS[i].duration));
       }
 
-      const ports = [5000, 5001, 5002, 5003, 5004, 5005];
+      const ports = [5002];
       let response;
       for (const port of ports) {
         try {
