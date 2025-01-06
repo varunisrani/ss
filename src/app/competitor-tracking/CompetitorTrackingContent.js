@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import SimpleMarkdown from 'simple-markdown';
 import jsPDF from 'jspdf';
-import { fetchWithPorts } from '../../utils/fetchWithPorts';
 
 export default function CompetitorTrackingContent() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -169,7 +168,7 @@ export default function CompetitorTrackingContent() {
         }
       };
 
-      const response = await fetch('http://127.0.0.1:5001/api/generate-report', {
+      const response = await fetch('http://127.0.0.1:5002/api/generate-report', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -223,7 +222,8 @@ export default function CompetitorTrackingContent() {
 
   const fetchAllReports = async () => {
     try {
-      const data = await fetchWithPorts('/api/reports');
+      const response = await fetch('http://127.0.0.1:5002/api/reports');
+      const data = await response.json();
       setAllReports(data.reports);
     } catch (err) {
       console.error('Error fetching reports:', err);
@@ -265,7 +265,7 @@ export default function CompetitorTrackingContent() {
 
   const viewReport = async (report) => {
     try {
-      const response = await fetch(`http://127.0.0.1:5001/api/report-content/${report.filename}`);
+      const response = await fetch(`https://varun324242-sj.hf.space/api/report-content/${report.filename}`);
       const data = await response.json();
       
       if (data.status === 'success') {

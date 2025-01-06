@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { FaChartLine, FaHistory, FaImpact, FaArrowRight } from 'react-icons/fa';
 import jsPDF from 'jspdf';
 import { marked } from 'marked';
-import { fetchWithPorts } from '../../utils/fetchWithPorts';
 
 export default function MarketAssessmentContent() {
   const [viewMode, setViewMode] = useState('form');
@@ -175,7 +174,7 @@ export default function MarketAssessmentContent() {
         await new Promise(resolve => setTimeout(resolve, AI_GENERATION_STEPS[i].duration));
       }
 
-      const response = await fetch('http://127.0.0.1:5001/api/generate-report', {
+      const response = await fetch('http://127.0.0.1:5002/api/generate-report', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -223,7 +222,8 @@ export default function MarketAssessmentContent() {
 
   const fetchAllReports = async () => {
     try {
-      const data = await fetchWithPorts('/api/reports');
+      const response = await fetch('http://127.0.0.1:5002/api/reports');
+      const data = await response.json();
       const apiReports = data.reports.filter(report => 
         report.report_type.includes('market_assessment')
       );
@@ -269,7 +269,7 @@ export default function MarketAssessmentContent() {
         // If the report is a file path, fetch the content
         if (typeof analysisResult.analysis_report === 'string' && 
             analysisResult.analysis_report.endsWith('.md')) {
-          fetch(`http://127.0.0.1:5001/api/report-content/${analysisResult.analysis_report}`)
+          fetch(`https://varun324242-sj.hf.space/api/report-content/${analysisResult.analysis_report}`)
             .then(res => res.json())
             .then(data => {
               const formattedReport = formatMarkdownContent(data.content);

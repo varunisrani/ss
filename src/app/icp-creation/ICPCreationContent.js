@@ -6,7 +6,6 @@ import SimpleMarkdown from 'simple-markdown';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { marked } from 'marked';
-import { fetchWithPorts } from '../../utils/fetchWithPorts';
 
 export default function ICPCreationContent() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -129,7 +128,19 @@ export default function ICPCreationContent() {
         await new Promise(resolve => setTimeout(resolve, AI_GENERATION_STEPS[i].duration));
       }
 
-      const response = await fetchWithPorts('/api/generate-report');
+      const response = await fetch('http://127.0.0.1:5002/api/generate-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          report_type: 'icp_report',
+          inputs: {
+            ...userInputs,
+            analysis_type: 'icp'
+          }
+        })
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -185,7 +196,7 @@ export default function ICPCreationContent() {
 
   const fetchAllReports = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5001/api/reports');
+      const response = await fetch('http://127.0.0.1:5002/api/reports');
       const data = await response.json();
       const apiReports = data.reports.filter(report => report.report_type.includes('icp'));
       
@@ -266,7 +277,7 @@ export default function ICPCreationContent() {
         setParsedReport(htmlContent);
       } else {
         // Rest of the existing API fetch code...
-        const response = await fetch(`http://127.0.0.1:5001/api/report-content/${report.filename}`);
+        const response = await fetch(`https://varun324242-sj.hf.space/api/report-content/${report.filename}`);
         const data = await response.json();
         
         if (data.status === 'success') {

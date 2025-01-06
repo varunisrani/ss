@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
 import { marked } from 'marked';
-import { fetchWithPorts } from '../../utils/fetchWithPorts';
 
 export default function GapAnalysisContent() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -133,7 +132,19 @@ export default function GapAnalysisContent() {
         await new Promise(resolve => setTimeout(resolve, AI_GENERATION_STEPS[i].duration));
       }
 
-      const response = await fetchWithPorts('/api/generate-report');
+      const response = await fetch('http://127.0.0.1:5002/api/generate-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          report_type: 'gap_analysis',
+          inputs: {
+            ...userInputs,
+            analysis_type: 'gap'
+          }
+        })
+      });
 
       const data = await response.json();
       

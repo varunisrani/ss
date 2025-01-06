@@ -869,7 +869,7 @@ export default function JourneyMappingContent() {
               <div className="space-y-2">
                 {item.recommendations.map((rec, i) => (
                   <div key={i} className="text-sm text-gray-300 flex items-start gap-2">
-                    <span className="text-purple-400 mt-1"></span>
+                    <span className="text-purple-400">•</span>
                     <span>{rec}</span>
                   </div>
                 ))}
@@ -880,6 +880,69 @@ export default function JourneyMappingContent() {
         </div>
       </div>
     );
+  };
+
+  const startAnalysis = async () => {
+    if (!journeyInputs.company_name) {
+        setError('Company name is required');
+        return;
+    }
+
+    try {
+        setAnalysisResult(null);
+        setParsedReport('');
+        localStorage.removeItem('currentJourneyMapping');
+        
+        setIsAnalyzing(true);
+        setError(null);
+        setGenerationSteps([]);
+        setCurrentStep(0);
+
+        // Show AI agent messages
+        for (let i = 0; i < AI_GENERATION_STEPS.length; i++) {
+            setCurrentStep(i);
+            setGenerationSteps(prev => [...prev, AI_GENERATION_STEPS[i]]);
+            await new Promise(resolve => setTimeout(resolve, AI_GENERATION_STEPS[i].duration));
+        }
+
+        const response = await fetch('http://127.0.0.1:5001/api/journey-mapping', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(journeyInputs)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Save new report
+        const newReport = {
+            id: Date.now(),
+            timestamp: new Date().toISOString(),
+            company: journeyInputs.company_name,
+            industry: journeyInputs.industry,
+            result: data
+        };
+
+        const existingReports = JSON.parse(localStorage.getItem('journeyMappingReports') || '[]');
+        const updatedReports = [newReport, ...existingReports].slice(0, 10);
+        localStorage.setItem('journeyMappingReports', JSON.stringify(updatedReports));
+        setSavedReports(updatedReports);
+
+        setAnalysisResult(data);
+    } catch (err) {
+        setError(err.message);
+    } finally {
+        setIsAnalyzing(false);
+        setGenerationSteps([]);
+        setCurrentStep(0);
+    }
   };
 
   return (

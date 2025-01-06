@@ -1,5 +1,7 @@
 {
-  "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/pro-mode/page": "app/pro-mode/page.js",
-  "/market-trends/page": "app/market-trends/page.js"
+  "/competitor-tracking/page": "app/competitor-tracking/page.js",
+  "/market-assessment/page": "app/market-assessment/page.js",
+  "/icp-creation/page": "app/icp-creation/page.js",
+  "/gap-analysis/page": "app/gap-analysis/page.js",
+  "/pro-mode/page": "app/pro-mode/page.js"
 }

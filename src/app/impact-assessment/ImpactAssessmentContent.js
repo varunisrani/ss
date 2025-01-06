@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
 import { marked } from 'marked';
-import { fetchWithPorts } from '../../utils/fetchWithPorts';
 
 export default function ImpactAssessmentContent() {
   const [viewMode, setViewMode] = useState('form');
@@ -110,7 +109,7 @@ export default function ImpactAssessmentContent() {
       try {
         // If the report is a file path, fetch the content
         if (analysisResult.analysis_report.endsWith('.md')) {
-          fetch(`http://127.0.0.1:5001/api/report-content/${analysisResult.analysis_report}`)
+          fetch(`https://varun324242-sj.hf.space/api/report-content/${analysisResult.analysis_report}`)
             .then(res => res.json())
             .then(data => {
               const formattedReport = formatMarkdownContent(data.content);
@@ -151,7 +150,7 @@ export default function ImpactAssessmentContent() {
 
   const fetchAllReports = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5001/api/reports');
+      const response = await fetch('http://127.0.0.1:5002/api/reports');
       const data = await response.json();
       setAllReports(data.reports.filter(report => 
         report.report_type.includes('impact_assessment')
@@ -184,7 +183,19 @@ export default function ImpactAssessmentContent() {
         await new Promise(resolve => setTimeout(resolve, AI_GENERATION_STEPS[i].duration));
       }
 
-      const response = await fetchWithPorts('/api/generate-report');
+      const response = await fetch('http://127.0.0.1:5002/api/generate-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          report_type: 'impact_assessment',
+          inputs: {
+            ...impactInputs,
+            analysis_type: 'impact'
+          }
+        })
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
