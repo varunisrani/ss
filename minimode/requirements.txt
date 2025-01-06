@@ -1,0 +1,16 @@
+flask
+flask-cors
+python-dotenv
+crewai>=0.14.0
+langchain>=0.1.0
+google-generativeai
+google-search-results>=2.4.2
+requests
+beautifulsoup4
+markdown
+uvicorn
+quart
+quart-cors
+langchain_openai
+langchain_community
+pydantic>=2.0.0
